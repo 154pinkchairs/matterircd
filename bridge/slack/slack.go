@@ -18,6 +18,7 @@ type Slack struct {
 	sc           *slack.Client
 	rtm          *slack.RTM
 	sinfo        *slack.Info
+	pmp          *slack.PostMessageParameters
 	susers       map[string]slack.User
 	connected    bool
 	userlistdone bool
@@ -92,6 +93,7 @@ func (s *Slack) List() (map[string]string, error) {
 		ExcludeArchived: true,
 		Limit:           100,
 		Types:           []string{"public_channel", "private_channel", "mpim"},
+		TeamID:          s.sinfo.Team.ID,
 	}
 
 OUTER:
@@ -389,7 +391,18 @@ func (s *Slack) GetPostsSince(channelID string, since int64) interface{} {
 }
 
 func (s *Slack) SearchPosts(search string) interface{} {
-	return nil
+	sparams := slack.SearchParameters{
+		Sort:          "timestamp",
+		SortDirection: "desc",
+		Highlight:     true,
+		Count:         100,
+		Page:          1,
+	}
+	sr, err := s.sc.SearchMessages(search, sparams)
+	if err != nil {
+		return nil
+	}
+	return sr
 }
 
 func (s *Slack) UpdateLastViewed(channelID string) {
